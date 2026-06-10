@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Data, download it yourself (see README); not shipped with the repo
+data/*.csv
+data/*.db
+data/adjustments.json
+odds.csv
+
+# Generated artifacts
+reliability*.png
+
+# Local assistant / tooling config (not part of the project)
+.claude/
+CLAUDE.md
+
+# Unrelated personal scripts (not part of this project)
+check-hades.sh
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
