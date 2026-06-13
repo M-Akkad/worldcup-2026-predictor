@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WK·26 Odds Engine</title>
+<meta name="description" content="Live titelkansen voor het WK 2026, Elo, Dixon-Coles en Monte Carlo, geconditioneerd op echte uitslagen.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Archivo:wght@400;600&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <span class="wordmark">WK<b>·26</b> Odds Engine</span>
+    <div class="chips">
+      <span class="chip" id="chip-matches">…</span>
+      <span class="chip" id="chip-cond">…</span>
+      <span class="chip" id="chip-run">…</span>
+      <button class="chip langbtn" id="lang-btn" title="Switch to English">EN</button>
+    </div>
+  </div>
+  <div class="bar" style="padding-top:0">
+    <nav data-i18n-aria="nav_aria" aria-label="Hoofdnavigatie">
+      <button data-tab="dashboard" class="active" data-i18n="nav_dashboard">Dashboard</button>
+      <button data-tab="groups" data-i18n="nav_groups">Groepen</button>
+      <button data-tab="results" data-i18n="nav_results">Resultaten</button>
+      <button data-tab="predict" data-i18n="nav_predict">Voorspeller</button>
+      <button data-tab="data" data-i18n="nav_data">Data &amp; model</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ======================================================= DASHBOARD -->
+<section data-tab="dashboard">
+  <div class="panel hero">
+    <div id="hero-body"><p class="muted" data-i18n="hero_loading">Laden …</p></div>
+    <div>
+      <div class="eyebrow" data-i18n="eyebrow_top10">Titelkansen · top 10</div>
+      <div class="bars" id="title-bars"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 data-i18n="h_titlerace">Titelrace door de tijd</h2>
+    <p class="small muted" data-i18n="p_titlerace">Elke simulatie-run is één meetpunt, draai er
+      dagelijks één na het ophalen van de uitslagen en zie de kansen
+      verschuiven.</p>
+    <div id="history-box"></div>
+  </div>
+
+  <div class="panel">
+    <h2 data-i18n="h_all48">Alle 48 landen</h2>
+    <p class="small muted" data-i18n="p_all48">Klik op een kolomkop om te sorteren. Beweeg over een
+      kop voor uitleg.</p>
+    <details class="explain">
+      <summary data-i18n="explain_read">Hoe lees ik dit?</summary>
+      <ul>
+        <li data-i18n-html="explain_elo"></li>
+        <li data-i18n-html="explain_groupwin"></li>
+        <li data-i18n-html="explain_ko"></li>
+        <li data-i18n-html="explain_mc"></li>
+      </ul>
+    </details>
+    <input id="table-search" type="search" data-i18n-ph="search_ph" data-i18n-aria="search_aria"
+           placeholder="Zoek een land…" aria-label="Zoek een land" style="margin:8px 0 12px;max-width:260px">
+    <div style="overflow-x:auto"><table id="prob-table"></table></div>
+  </div>
+</section>
+
+<!-- ========================================================== GROUPS -->
+<section data-tab="groups" hidden>
+  <div class="panel">
+    <h2 data-i18n="h_groups">De twaalf groepen</h2>
+    <p class="small muted" id="groups-note" data-i18n="groups_note">Kansen verschijnen zodra de eerste
+      simulatie is gedraaid; gespeelde uitslagen komen automatisch onder de
+      groep te staan.</p>
+  </div>
+  <div class="groupgrid" id="groupgrid"></div>
+</section>
+
+<!-- ====================================================== RESULTATEN -->
+<section data-tab="results" hidden>
+  <div class="panel">
+    <h2 data-i18n="h_fixtures">Aankomende wedstrijden, wie tegen wie, en wat het model verwacht</h2>
+    <p class="small muted" data-i18n="p_fixtures">De eerstvolgende WK-wedstrijden uit het speelschema met
+      de voorspelling van het model: de winkans per uitkomst (thuiswinst /
+      gelijkspel / uitwinst), het verwachte aantal goals en de meest
+      waarschijnlijke eindstand. THUIS = gastland speelt thuis.</p>
+    <div style="overflow-x:auto"><table id="fixtures-table"></table></div>
+    <p class="small muted" id="fixtures-empty" data-i18n="fixtures_empty" hidden>Geen aankomende
+      WK-wedstrijden in de data.</p>
+  </div>
+
+  <div class="panel">
+    <h2 data-i18n="h_scorecard">Voorspeld vs. werkelijk</h2>
+    <p class="small muted" data-i18n="p_scorecard">Voor elke al gespeelde WK-wedstrijd: wat het model
+      vóór de aftrap voorspelde naast de echte uitslag, en het verschil.</p>
+    <div id="scorecard-summary" class="scsum"></div>
+    <div style="overflow-x:auto"><table id="scorecard-table"></table></div>
+    <p class="small muted" id="scorecard-empty" data-i18n="scorecard_empty" hidden>Nog geen gespeelde
+      WK-wedstrijden in de data.</p>
+  </div>
+</section>
+
+<!-- ======================================================= PREDICTOR -->
+<section data-tab="predict" hidden>
+  <div class="panel">
+    <h2 data-i18n="h_predict">Voorspel één wedstrijd</h2>
+    <form id="predict-form" class="inline">
+      <label class="field" data-i18n="lbl_home1">Thuis / team 1
+        <select id="sel-home"></select></label>
+      <label class="field" data-i18n="lbl_away1">Uit / team 2
+        <select id="sel-away"></select></label>
+      <label class="field" data-i18n="lbl_model">Model
+        <select id="sel-pmodel">
+          <option value="ensemble" data-i18n="opt_ensemble">Ensemble (aanbevolen)</option>
+          <option value="elo" data-i18n="opt_elo">Elo (sterk op doelpunten)</option>
+          <option value="ordered_logit" data-i18n="opt_olr">Ordered logit (wie wint)</option>
+        </select></label>
+      <label class="field" data-i18n="lbl_neutral">Neutraal terrein
+        <input type="checkbox" id="chk-neutral" checked></label>
+      <label class="field" data-i18n="lbl_odds">Bookmaker-odds (thuis, gelijk, uit, optioneel)
+        <input id="inp-odds" placeholder="2.10,3.30,3.90" size="13"></label>
+      <label class="field" data-i18n="lbl_mw" data-i18n-title="title_mw" title="Hoe zwaar de bookmaker-odds meewegen: 0 = alleen het model, 1 = alleen de markt">Marktgewicht (0–1)
+        <input id="inp-mw" type="number" value="0.5" min="0" max="1" step="0.1"
+               style="width:70px"></label>
+      <button class="action" id="predict-btn" data-i18n="btn_predict">Voorspel</button>
+    </form>
+    <p class="small muted" style="margin-bottom:0" data-i18n="p_shin">Odds worden eerst ontdaan van
+      de bookmakermarge via Shin's methode (corrigeert de favourite-longshot-bias)
+      en daarna gemengd met het model.</p>
+  </div>
+
+  <div class="panel" id="predict-out" hidden>
+    <h2 id="pred-title"></h2>
+    <div class="outcome" id="pred-outcome"></div>
+    <p class="small muted" id="pred-market"></p>
+    <div class="eyebrow" data-i18n="eyebrow_goals">Doelpunten</div>
+    <div id="pred-goals" style="margin-bottom:14px"></div>
+    <div class="eyebrow" data-i18n="eyebrow_scorelines">Meest waarschijnlijke uitslagen</div>
+    <div id="pred-scores" style="margin-bottom:14px"></div>
+    <div class="eyebrow" data-i18n="eyebrow_scoreprobs">Scorekansen (thuis ↓ / uit →)</div>
+    <div class="heat" id="pred-heat"></div>
+  </div>
+</section>
+
+<!-- ===================================================== DATA & MODEL -->
+<section data-tab="data" hidden>
+  <div class="cols">
+
+    <div class="panel">
+      <h2 data-i18n="h_fetch">Uitslagen binnenhalen</h2>
+      <p class="small muted" data-i18n="p_fetch">De gratis openfootball-feed (geen API-key, ~dagelijks
+        bijgewerkt) of handmatig per wedstrijd. Dubbele invoer wordt automatisch
+        overgeslagen.</p>
+      <button class="ghost" id="btn-fetch" data-i18n="btn_fetch">Haal uitslagen op (gratis feed)</button>
+      <form id="result-form" class="inline" style="margin-top:14px">
+        <label class="field" data-i18n="lbl_home">Thuis<input id="res-home" placeholder="Mexico" required size="11"></label>
+        <label class="field" data-i18n="lbl_away">Uit<input id="res-away" placeholder="South Korea" required size="11"></label>
+        <label class="field" data-i18n="lbl_hs">T<input id="res-hs" type="number" min="0" max="30" required style="width:54px"></label>
+        <label class="field" data-i18n="lbl_as">U<input id="res-as" type="number" min="0" max="30" required style="width:54px"></label>
+        <label class="field" data-i18n="lbl_date">Datum<input id="res-date" type="date"></label>
+        <label class="field" data-i18n="lbl_homegame">Thuiswedstrijd gastland
+          <input type="checkbox" id="res-homegame"></label>
+        <button class="action" data-i18n="btn_add">Voeg toe</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="h_news">Nieuws-correcties</h2>
+      <p class="small muted" data-i18n="p_news">Blessures, schorsingen, vorm, als begrensde
+        Elo-delta. Wordt toegepast op de eerstvolgende simulatie.</p>
+      <form id="adj-form" class="inline">
+        <label class="field" data-i18n="lbl_team">Team<input id="adj-team" placeholder="France" required size="11"></label>
+        <label class="field" data-i18n="lbl_delta">Delta<input id="adj-delta" type="number" min="-100" max="100"
+               value="-25" required style="width:74px"></label>
+        <label class="field" data-i18n="lbl_reason">Reden<input id="adj-reason" data-i18n-ph="ph_reason" placeholder="spits geblesseerd" size="16"></label>
+        <button class="action" data-i18n="btn_save">Opslaan</button>
+      </form>
+      <div id="adj-list" style="margin-top:12px"></div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="h_sim">Simulatie draaien</h2>
+      <form id="sim-form" class="inline">
+        <label class="field" data-i18n="lbl_model">Model
+          <select id="sim-model">
+            <option value="ensemble" data-i18n="opt_ensemble">Ensemble (aanbevolen)</option>
+            <option value="elo" data-i18n="opt_elo">Elo (sterk op doelpunten)</option>
+            <option value="ordered_logit" data-i18n="opt_olr">Ordered logit (wie wint)</option>
+          </select></label>
+        <label class="field" data-i18n="lbl_nsims">Aantal simulaties
+          <input id="sim-n" type="number" value="10000" min="100" max="200000"
+                 step="1000" style="width:100px"></label>
+        <label class="field" data-i18n="lbl_applyadj">Pas correcties toe
+          <input type="checkbox" id="sim-adj" checked></label>
+        <button class="action" id="sim-btn" data-i18n="btn_sim">Start simulatie</button>
+      </form>
+      <p class="joblog" id="sim-log"></p>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="h_backtest">Backtest</h2>
+      <p class="small muted" data-i18n="p_backtest">Eerlijke meting op wedstrijden die het model niet
+        kende: lager dan de base-rate-kolom betekent echte voorspelkracht.</p>
+      <details class="explain">
+        <summary data-i18n="bt_explain">Wat betekenen deze cijfers?</summary>
+        <ul>
+          <li data-i18n-html="bt_li_rps"></li>
+          <li data-i18n-html="bt_li_ll"></li>
+          <li data-i18n-html="bt_li_brier"></li>
+          <li data-i18n-html="bt_li_acc"></li>
+          <li data-i18n-html="bt_li_ece"></li>
+        </ul>
+      </details>
+      <form id="bt-form" class="inline">
+        <label class="field" data-i18n="lbl_model">Model
+          <select id="bt-model">
+            <option value="elo" data-i18n="opt_elo">Elo (sterk op doelpunten)</option>
+            <option value="ordered_logit" data-i18n="opt_olr">Ordered logit (wie wint)</option>
+            <option value="ensemble" data-i18n="opt_ensemble">Ensemble (aanbevolen)</option>
+          </select></label>
+        <label class="field" data-i18n="lbl_from">Vanaf
+          <input id="bt-start" type="date" value="2022-01-01"></label>
+        <button class="action" id="bt-btn" data-i18n="btn_measure">Meet</button>
+      </form>
+      <div id="bt-out" style="margin-top:12px"></div>
+    </div>
+
+    <div class="panel">
+      <h2><span data-i18n="h_tune">Parameters optimaliseren</span> <span class="muted small">(Optuna)</span></h2>
+      <p class="small muted" data-i18n="p_tune">Zoekt automatisch de beste modelinstellingen,
+        Elo K-factoren, thuisvoordeel, de goals-brug en het ensemble-gewicht,
+        door slim (Bayesiaans) te zoeken en elke combinatie eerlijk
+        out-of-sample te toetsen. Lagere score = beter.</p>
+      <form id="tune-form" class="inline">
+        <label class="field" data-i18n="lbl_model">Model
+          <select id="tune-model">
+            <option value="ensemble" data-i18n="opt_ensemble">Ensemble (aanbevolen)</option>
+            <option value="elo" data-i18n="opt_elo">Elo (sterk op doelpunten)</option>
+            <option value="ordered_logit" data-i18n="opt_olr">Ordered logit (wie wint)</option>
+          </select></label>
+        <label class="field" data-i18n="lbl_metric">Maatstaf
+          <select id="tune-metric">
+            <option value="rps">RPS</option>
+            <option value="log_loss">log-loss</option>
+            <option value="brier">Brier</option>
+          </select></label>
+        <label class="field" data-i18n="lbl_trials">Aantal pogingen
+          <input id="tune-trials" type="number" value="40" min="5" max="300"
+                 step="5" style="width:84px"></label>
+        <button class="action" id="tune-btn" data-i18n="btn_tune">Start optimalisatie</button>
+      </form>
+      <div class="tunebar" id="tune-bar" hidden><i></i></div>
+      <p class="joblog" id="tune-log"></p>
+      <div id="tune-out" style="margin-top:8px"></div>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<script src="/static/i18n.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
